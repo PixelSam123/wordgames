@@ -12,7 +12,6 @@ use axum::{
     response::IntoResponse,
     routing, Router, Server,
 };
-use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tower_http::trace::TraceLayer;
@@ -22,8 +21,9 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
         .with(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "wordgames=debug,tower_http=debug".into()),
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                "wordgames=debug,tower_http=debug,axum::rejection=trace".into()
+            }),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(state)
         .layer(TraceLayer::new_for_http());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
     tracing::debug!("Listening on {}", addr);
     Server::bind(&addr).serve(app.into_make_service()).await?;
 
